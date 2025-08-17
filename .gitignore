@@ -1,0 +1,29 @@
+# macOS
+.DS_Store
+
+# Cursor
+.cursor/
+
+# Python
+__pycache__/
+*.py[cod]
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+.env
+.venv
+venv/
+ENV/
+.env.*
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# OS/Editor
+Thumbs.db
