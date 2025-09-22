@@ -2,13 +2,12 @@
 # type: ignore[import]
 import sentencepiece as spm
 import torch
-import copy
 from typing import List
 
 seq_length = 175
 
 sp = spm.SentencePieceProcessor(model_file='tokenizer_model.model')
-print(sp.pad_id(), sp.bos_id(), sp.eos_id())
+assert sp.pad_id() == 0
 
 def encode(text: str) -> List[int]:
     encoded = sp.encode_as_ids(text)
@@ -25,25 +24,24 @@ def encode_tgt(text: str) -> tuple[torch.Tensor, torch.Tensor]:
     tgt_out = list(encoded)
     tgt_out.append(sp.eos_id())
 
-    for _ in range(seq_length - len(tgt_in)):
-        tgt_in.append(sp.pad_id())
+    return (torch.tensor(tgt_in, dtype=torch.long), torch.tensor(tgt_out, dtype=torch.long))
 
-    for _ in range(seq_length - len(tgt_out)):
-        tgt_out.append(sp.pad_id())
-
-    return (torch.tensor(tgt_in), torch.tensor(tgt_out))
-
-def decode(ids: torch.Tensor) -> str:
+def decode(ids_tensor: torch.Tensor) -> str:  
+    ids = ids_tensor.tolist()
+    if len(ids) == 0:
+        return ""
+    if ids[0] == sp.bos_id():
+        ids = ids[1:]
 
     for i, token_id in enumerate(ids):
-        if token_id.item() == sp.eos_id():
-            if ids[0].item() == sp.bos_id():
-                ids = ids[1:i]
-            else:
-                ids = ids[:i]
+        if token_id == sp.eos_id():
+            ids = ids[:i]
             break
+        
+            
+    ids = [token_id for token_id in ids if token_id != sp.pad_id()]
 
-    decoded = sp.decode_ids(ids.tolist())
+    decoded = sp.decode_ids(ids)
 
     return decoded
 
