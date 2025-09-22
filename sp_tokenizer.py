@@ -37,7 +37,7 @@ def decode(ids: torch.Tensor) -> str:
 
     for i, token_id in enumerate(ids):
         if token_id.item() == sp.eos_id():
-            if ids[0] == sp.bos_id():
+            if ids[0].item() == sp.bos_id():
                 ids = ids[1:i]
             else:
                 ids = ids[:i]
