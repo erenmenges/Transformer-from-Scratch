@@ -1,4 +1,6 @@
 import torch
+from sp_tokenizer import SentencePieceTokenizer
+
 
 class dataset30k:
     def __init__(self, src_path: str, tgt_path:str):
@@ -11,6 +13,7 @@ class dataset30k:
 
         self.src_texts = src_lines
         self.tgt_texts = tgt_lines
+        self.tokenizer = SentencePieceTokenizer(model_file='tokenizer_model.model')
         self.size = len(src_lines)
     
     def __len__(self):
@@ -35,9 +38,11 @@ class dataset30k:
                 s.append(pad_id)
         return seqs
 
+    @staticmethod
     def make_padding_mask(padded: torch.LongTensor, pad_id: int) -> torch.Tensor:
         return padded == pad_id
 
+    @staticmethod
     def make_triangle_mask(tgt_len: int) -> torch.Tensor:
         mask = torch.zeros(tgt_len, tgt_len, dtype=torch.bool)
         for i in range(tgt_len):
@@ -48,5 +53,29 @@ class dataset30k:
         return mask
 
 
-    
+    def collate_translation(self, batch: list[tuple[str, str]], pad_id: int = 0) -> dict[str, torch.Tensor]:
+        output = {}
+        src_texts = [sentences[0] for sentences in batch]
+        tgt_texts = [sentences[1] for sentences in batch]
 
+        src_texts = [self.tokenizer.encode(sentence) for sentence in src_texts]
+        pairs = [self.tokenizer.encode_tgt(sentence) for sentence in tgt_texts]
+        tgt_in_texts, tgt_out_texts = zip(*pairs)
+        tgt_in_texts, tgt_out_texts = list(tgt_in_texts), list(tgt_out_texts)
+
+        src_texts = torch.tensor(self.pad_right(src_texts, pad_id), dtype=torch.long)
+        tgt_in_texts = torch.tensor(self.pad_right(tgt_in_texts, pad_id), dtype=torch.long)
+        tgt_out_texts = torch.tensor(self.pad_right(tgt_out_texts, pad_id), dtype=torch.long)
+
+        src_pad_mask = (src_texts == pad_id)
+        tgt_pad_mask = (tgt_in_texts == pad_id)
+        tgt_causal_mask = self.make_triangle_mask(len(tgt_in_texts[0]))
+
+        output["src_texts"] = src_texts
+        output["tgt_in_texts"] = tgt_in_texts
+        output["tgt_out_texts"] = tgt_out_texts
+        output["src_pad_mask"] = src_pad_mask
+        output["tgt_pad_mask"] = tgt_pad_mask
+        output["tgt_causal_mask"] = tgt_causal_mask
+
+        return output

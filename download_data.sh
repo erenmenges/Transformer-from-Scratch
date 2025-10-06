@@ -1,10 +1,8 @@
-#!/usr/bin/env bash
 set -euo pipefail
 
 OUT_DIR="${1:-multi30k_en-de_raw}"
 BASE_URL="https://raw.githubusercontent.com/multi30k/dataset/master/data/task1/raw"
 
-# Files we need (EN↔DE, train/val, and 2016 Flickr test)
 FILES=(
   "train.en.gz"
   "train.de.gz"
